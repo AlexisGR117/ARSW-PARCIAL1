@@ -35,7 +35,7 @@ public class PiDigits {
         int countThread = count/N;
         for (int i = 0; i < N; i++) {
             if (i < N - 1) calculatorThreads.add(new CalculatorThread(start + i*countThread, countThread, lock, i));
-            else calculatorThreads.add(new CalculatorThread(start + i*countThread, start + count - i*countThread, lock, i));
+            else calculatorThreads.add(new CalculatorThread(start + i*countThread, count - i*countThread, lock, i));
         }
         for (CalculatorThread calculatorThread: calculatorThreads) calculatorThread.start();
         while (!calculatorThreads.get(0).getStateThread()) {
@@ -57,7 +57,7 @@ public class PiDigits {
                 calculatorThread.join();
                 int initialIndex = calculatorThread.getNumberThread() * countThread;
                 byte[] addDigits = calculatorThread.getDigits();
-                for (int i = 0; i < addDigits.length; i++) digits[i] = addDigits[i];
+                for (int i = 0; i < addDigits.length; i++) digits[initialIndex + i] = addDigits[i];
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
