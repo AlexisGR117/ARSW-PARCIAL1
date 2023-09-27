@@ -1,34 +1,41 @@
 package edu.eci.arsw.math;
 
-import java.util.Arrays;
-
 public class CalculatorThread extends Thread {
 
-    private static int DigitsPerSum = 8;
-    private static double Epsilon = 1e-17;
-    private byte[] digits;
-    private int start;
-    private int count;
+    private static final int DigitsPerSum = 8;
+    private static final double Epsilon = 1e-17;
     private final Object lock;
-    private boolean state;
-    private long startTime;
-    private int numberThread;
+    private final byte[] digits;
+    private final int count;
+    private int start;
+    private int state;
     private int numberDigits;
 
-    public CalculatorThread(int start, int count, Object lock, int numberThread) {
-        this.digits = new byte[count];
+    /**
+     * Crea un objeto de clase CalculatorThread.
+     *
+     * @param start Índice inicial desde el cual se obtendrán los dígitos que le corresponden al hilo.
+     * @param count Cantidad de dígitos que va a calcular el hilo.
+     * @param lock  Objeto que servirá como monitor para poder detener la ejecución del hilo y reanudarla posteriormente.
+     */
+    public CalculatorThread(int start, int count, Object lock) {
         this.start = start;
         this.count = count;
         this.lock = lock;
-        this.state = false;
-        this.numberThread = numberThread;
+        // Esta variable índica el estado del hilo, 0 representa running, 1 waiting y 2 terminated.
+        this.state = 0;
+        // Cantidad de dígitos que se han calculado
         this.numberDigits = 0;
+        // Array donde están guardados los dígitos calculados.
+        this.digits = new byte[count];
     }
+
 
     @Override
     public void run() {
+        // Cálculo de los dígitos que le corresponden al hilo, este se hace de la misma manera que estaba en PiDigits
+        // (se pasaron los métodos que realizaban el cálculo a esta clase).
         double sum = 0;
-        startTime = System.currentTimeMillis();
         for (int i = 0; i < count; i++) {
             try {
                 stopThread();
@@ -45,31 +52,41 @@ public class CalculatorThread extends Thread {
                 start += DigitsPerSum;
             }
             sum = 16 * (sum - Math.floor(sum));
+            // Cuando se finaliza el cálculo correspondiente para cada dígito se guarda en la matriz digits,
+            // en su respectiva posición.
             digits[i] = (byte) sum;
-            numberDigits ++;
+            // Se aumenta el número de dígitos calculados por el hilo.
+            numberDigits++;
         }
-        state = true;
+        // Al finalizar el cálculo de todos los números que le correspondían al hilo, se cambia el valor de state
+        // a 2, lo cual representa que ya terminó su ejecución.
+        state = 2;
     }
 
+    /*
+    Método que se ejecuta en cada iteración del ciclo for, este pregunta si la variable state del hilo es 1 (waiting),
+    si esto pasa imprime la cantidad de números calculados hasta el momento por el hilo y
+    lo duerme con lock.wait()
+     */
     private void stopThread() throws InterruptedException {
         synchronized (lock) {
-            while (System.currentTimeMillis() - startTime >= 5000) {
-                System.out.println("Cantidad de digitos calculados por el hilo "+ numberThread + ": " + numberDigits);
+            while (state == 1) {
+                System.out.println("Cantidad de dígitos calculados por " + Thread.currentThread().getName() + ": " + numberDigits);
                 lock.wait();
             }
         }
-    }
-
-    public void resetTimer() {
-        startTime = System.currentTimeMillis();
     }
 
     public byte[] getDigits() {
         return digits;
     }
 
-    public boolean getStateThread() {
-        return state;
+    public void changeState(int state) {
+        this.state = state;
+    }
+
+    public boolean isRunning() {
+        return state == 0;
     }
 
     /// <summary>
@@ -82,10 +99,8 @@ public class CalculatorThread extends Thread {
         double sum = 0;
         int d = m;
         int power = n;
-
         while (true) {
             double term;
-
             if (power > 0) {
                 term = (double) hexExponentModulo(power, d) / d;
             } else {
@@ -94,12 +109,10 @@ public class CalculatorThread extends Thread {
                     break;
                 }
             }
-
             sum += term;
             power--;
             d += 8;
         }
-
         return sum;
     }
 
@@ -114,40 +127,19 @@ public class CalculatorThread extends Thread {
         while (power * 2 <= p) {
             power *= 2;
         }
-
         int result = 1;
-
         while (power > 0) {
             if (p >= power) {
                 result *= 16;
                 result %= m;
                 p -= power;
             }
-
             power /= 2;
-
             if (power > 0) {
                 result *= result;
                 result %= m;
             }
         }
-
         return result;
-    }
-
-    public int getStart() {
-        return start;
-    }
-
-    public int getCount() {
-        return count;
-    }
-
-    public int getNumberThread() {
-        return numberThread;
-    }
-
-    public int getNumberDigits() {
-        return numberDigits;
     }
 }
